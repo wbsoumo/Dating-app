@@ -1,0 +1,41 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('title');
+            $table->text('body');
+            $table->string('type', 50)->default('system'); // match, like, star, subscription, system
+            $table->json('data')->nullable();
+            $table->boolean('is_read')->default(false)->index();
+            $table->timestamps();
+
+            $table->index(['user_id', 'is_read']);
+        });
+
+        Schema::create('otps', function (Blueprint $table) {
+            $table->id();
+            $table->string('identifier', 100)->index(); // phone or email
+            $table->string('code', 10);
+            $table->timestamp('expires_at');
+            $table->boolean('is_verified')->default(false);
+            $table->timestamps();
+
+            $table->index(['identifier', 'code', 'is_verified']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('otps');
+        Schema::dropIfExists('notifications');
+    }
+};

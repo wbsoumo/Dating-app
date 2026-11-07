@@ -1,0 +1,22 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # If the request is already for public/, do nothing
+    RewriteCond %{REQUEST_URI} !^/public/
+
+    # Rewrite all requests to the public/ folder
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
+</IfModule>
+
+# Prevent directory browsing
+Options -Indexes
+
+# Protect sensitive files from direct web access
+<FilesMatch "^\.env|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|deploy\.sh|\.git">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
