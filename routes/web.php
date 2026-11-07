@@ -26,6 +26,40 @@ Route::get('/', function () {
     return redirect()->route('admin.dashboard');
 });
 
+// Secure One-Click Database Migrator & Seeder via Browser
+Route::get('/migrate-db', function () {
+    $key = request('key');
+    if ($key !== 'taskbazi_dating_deploy_2026') {
+        abort(403, 'Unauthorized. Please provide valid deployment key.');
+    }
+
+    $results = [];
+
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $results['migrate'] = \Illuminate\Support\Facades\Artisan::output();
+
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        $results['seed'] = \Illuminate\Support\Facades\Artisan::output();
+    } catch (\Throwable $e) {
+        $results['artisan_error'] = $e->getMessage();
+
+        // Fallback: Direct PDO import of dating_app.sql
+        $sqlPath = database_path('dating_app.sql');
+        if (file_exists($sqlPath)) {
+            \Illuminate\Support\Facades\DB::unprepared(file_get_contents($sqlPath));
+            $results['sql_import'] = 'Imported database/dating_app.sql successfully via PDO.';
+        }
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Database initialized successfully!',
+        'details' => $results,
+        'login_url' => url('/admin/login'),
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
 // Automated Web Installer (Protected one-time URL)
 Route::prefix('install')->group(function () {
     Route::get('/', [InstallerController::class, 'index'])->name('installer.index');

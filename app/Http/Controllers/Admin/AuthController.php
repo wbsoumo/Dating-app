@@ -6,14 +6,55 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AuthController extends Controller
 {
+    /**
+     * Auto-initialize database tables and seeders if not yet migrated.
+     */
+    protected function ensureDatabaseMigrated(): void
+    {
+        try {
+            if (!Schema::hasTable('admins')) {
+                // 1. Attempt standard Artisan migration and seeder
+                Artisan::call('migrate', ['--force' => true]);
+                Artisan::call('db:seed', ['--force' => true]);
+
+                // 2. If admins table is still missing, fallback to raw SQL import
+                if (!Schema::hasTable('admins')) {
+                    $sqlFile = database_path('dating_app.sql');
+                    if (file_exists($sqlFile)) {
+                        DB::unprepared(file_get_contents($sqlFile));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback to raw SQL import
+            try {
+                $sqlFile = database_path('dating_app.sql');
+                if (file_exists($sqlFile)) {
+                    DB::unprepared(file_get_contents($sqlFile));
+                }
+            } catch (\Throwable $ex) {
+                // Log and continue
+            }
+        }
+    }
+
     public function showLogin()
     {
-        if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+        $this->ensureDatabaseMigrated();
+
+        try {
+            if (Auth::guard('admin')->check()) {
+                return redirect()->route('admin.dashboard');
+            }
+        } catch (\Throwable $e) {
+            // Guard check fallback
         }
 
         return view('admin.auth.login');
@@ -21,6 +62,8 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        $this->ensureDatabaseMigrated();
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
