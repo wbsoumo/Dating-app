@@ -3,4 +3,6 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/helnovexaa/public_html/
     - /bin/cp -R * $DEPLOYPATH
-    - /bin/cp .htaccess $DEPLOYPATH/
+    - /bin/cp .htaccess $DEPLOYPATH/ 2>/dev/null || true
+    - /bin/cp .env $DEPLOYPATH/ 2>/dev/null || true
+    - /bin/chmod -R 775 $DEPLOYPATH/storage $DEPLOYPATH/bootstrap/cache $DEPLOYPATH/public/uploads 2>/dev/null || true

@@ -15,10 +15,14 @@ cd "$SCRIPT_DIR"
 
 echo "📂 Project Directory: $SCRIPT_DIR"
 
-# 1. Pull latest code from GitHub main branch
-echo "⬇️  Pulling latest commits from origin main..."
-git fetch origin main
-git reset --hard origin/main
+# 1. Pull latest code from GitHub (auto-detect main or master)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+if [ "$CURRENT_BRANCH" = "HEAD" ] || [ -z "$CURRENT_BRANCH" ]; then
+    CURRENT_BRANCH="main"
+fi
+echo "⬇️  Pulling latest commits from origin $CURRENT_BRANCH..."
+git fetch origin "$CURRENT_BRANCH"
+git reset --hard "origin/$CURRENT_BRANCH"
 
 # 2. Check if .env exists, if not copy production template
 if [ ! -f .env ]; then

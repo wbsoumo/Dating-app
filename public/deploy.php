@@ -70,9 +70,15 @@ function runCmd($cmd, &$output) {
     $output[] = "";
 }
 
-// 1. Pull latest git code
-runCmd('git fetch origin main 2>&1', $output);
-runCmd('git reset --hard origin/main 2>&1', $output);
+// 1. Pull latest git code (auto-detect active branch: main or master)
+$targetBranch = $_GET['branch'] ?? $_POST['branch'] ?? '';
+if (empty($targetBranch) || !preg_match('/^[a-zA-Z0-9_\-\.]+$/', $targetBranch)) {
+    $branchDetect = [];
+    @exec('git rev-parse --abbrev-ref HEAD 2>/dev/null', $branchDetect);
+    $targetBranch = (!empty($branchDetect[0]) && $branchDetect[0] !== 'HEAD') ? trim($branchDetect[0]) : 'main';
+}
+runCmd("git fetch origin {$targetBranch} 2>&1", $output);
+runCmd("git reset --hard origin/{$targetBranch} 2>&1", $output);
 
 // 2. Run migrations
 runCmd('php artisan migrate --force 2>&1', $output);
