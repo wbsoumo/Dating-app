@@ -42,6 +42,7 @@ Route::prefix('admin')->group(function () {
 
     // Guest Auth Routes
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
+    Route::get('/auth/login', [AdminAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('admin.login.submit');
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
