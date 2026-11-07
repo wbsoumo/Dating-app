@@ -6,6 +6,10 @@
  * Also supports GitHub Webhook POST requests with the secret key in URL or header.
  */
 
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 // Secret deployment key (Must match URL ?key= parameter)
 $secretKey = 'taskbazi_dating_deploy_2026';
 
@@ -14,8 +18,9 @@ $envFile = dirname(__DIR__) . '/.env';
 if (file_exists($envFile)) {
     $envLines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($envLines as $line) {
-        if (str_starts_with(trim($line), 'DEPLOY_SECRET_KEY=')) {
-            $parts = explode('=', trim($line), 2);
+        $trimmed = trim($line);
+        if (strncmp($trimmed, 'DEPLOY_SECRET_KEY=', 18) === 0) {
+            $parts = explode('=', $trimmed, 2);
             if (!empty($parts[1])) {
                 $secretKey = trim($parts[1], " \t\n\r\0\x0B\"'");
             }
@@ -101,7 +106,7 @@ $output[] = " API Docs:    https://taskbazi.site/api/docs";
 $output[] = "========================================================";
 
 // Return JSON if requested
-if (isset($_GET['format']) && $_GET['format'] === 'json' || isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
+if ((isset($_GET['format']) && $_GET['format'] === 'json') || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {
     header('Content-Type: application/json');
     echo json_encode([
         'status' => 'success',
