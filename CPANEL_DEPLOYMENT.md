@@ -138,10 +138,65 @@ To automatically handle daily swipe limit resets, subscription expirations, and 
 
 ---
 
-## 8. Mobile App Developer Integration Hand-off
+## 9. Automated Code Pulling & Deployment System for taskbazi.site
 
-Mobile application developers building iOS and Android apps can view complete endpoint contracts, sample JSON requests, response schemas, and copyable cURL commands at:
+The repository includes a multi-channel code-pulling system designed specifically for **`taskbazi.site`** and cPanel environments:
 
-- **Interactive Web Documentation:** `https://yourdomain.com/api/docs`
-- **Postman Collection Download:** `https://yourdomain.com/api/docs/postman`
-- **API Base URL:** `https://yourdomain.com/api/v1`
+### Server & Database Details
+- **Domain:** `https://taskbazi.site`
+- **Database Name:** `helnovexaa_dating`
+- **Database User:** `helnovexaa_dating`
+- **Database Password:** `Soumojit1234@`
+- **Database Host:** `localhost`
+- **Preconfigured Environment File:** `.env.taskbazi`
+
+---
+
+### Pulling & Updating Code on the Server
+
+Choose any of the following 4 automated methods to pull latest code:
+
+#### Method 1: Web Puller (Zero SSH / Browser Click)
+Simply open your browser or trigger an HTTP GET request to:
+```text
+https://taskbazi.site/deploy.php?key=taskbazi_dating_deploy_2026
+```
+This executes:
+1. `git fetch origin main` & `git reset --hard origin/main`
+2. `php artisan migrate --force`
+3. Cache optimization (`config:cache`, `route:cache`, `view:cache`)
+4. Directory permission enforcement (`chmod 775`)
+5. Displays a live terminal-style execution report with duration and status.
+
+*(Optional)* Receive JSON response for automation:
+```bash
+curl -s "https://taskbazi.site/deploy.php?key=taskbazi_dating_deploy_2026&format=json"
+```
+
+#### Method 2: Command Line Shell Script (`deploy.sh`)
+If you have SSH or cPanel Terminal access, run:
+```bash
+cd /home/helnovexaa/public_html
+./deploy.sh
+```
+Or via cPanel Cron Job for scheduled automatic syncs (e.g., hourly or daily).
+
+#### Method 3: GitHub Push Webhook (Fully Automatic)
+To automatically pull and deploy whenever you push code to GitHub:
+1. Go to your GitHub repository: [https://github.com/wbsoumo/Dating-app/settings/hooks](https://github.com/wbsoumo/Dating-app/settings/hooks)
+2. Click **Add webhook**.
+3. Set **Payload URL** to:
+   ```text
+   https://taskbazi.site/deploy.php?key=taskbazi_dating_deploy_2026
+   ```
+4. Set **Content type** to `application/json`.
+5. Which events would you like to trigger this webhook? Select **Just the push event**.
+6. Click **Add webhook**.
+Now, every time you `git push origin main`, your server automatically pulls and deploys!
+
+#### Method 4: cPanel Git Versioning (`.cpanel.yml`)
+The repository includes `.cpanel.yml`. In cPanel:
+1. Navigate to **Git™ Versioning**.
+2. Clone repository: `https://github.com/wbsoumo/Dating-app.git` into `/home/helnovexaa/repositories/dating-app`.
+3. In the repository actions, click **Manage > Deploy HEAD Commit** to automatically copy files to `/home/helnovexaa/public_html/`.
+
