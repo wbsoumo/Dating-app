@@ -33,16 +33,20 @@ class ActivityLog extends Model
         return $this->belongsTo(Admin::class);
     }
 
-    public static function record(?int $adminId, string $action, ?string $subjectType = null, ?int $subjectId = null, ?array $details = null): self
+    public static function record(?int $adminId, string $action, ?string $subjectType = null, ?int $subjectId = null, ?array $details = null): ?self
     {
-        return self::create([
-            'admin_id' => $adminId,
-            'action' => $action,
-            'subject_type' => $subjectType,
-            'subject_id' => $subjectId,
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
-            'details' => $details,
-        ]);
+        try {
+            return self::create([
+                'admin_id' => $adminId,
+                'action' => $action,
+                'subject_type' => $subjectType,
+                'subject_id' => $subjectId,
+                'ip_address' => Request::ip(),
+                'user_agent' => Request::userAgent(),
+                'details' => $details,
+            ]);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

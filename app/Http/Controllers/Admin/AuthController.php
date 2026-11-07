@@ -19,29 +19,34 @@ class AuthController extends Controller
     protected function ensureDatabaseMigrated(): void
     {
         try {
-            if (!Schema::hasTable('admins')) {
-                // 1. Attempt standard Artisan migration and seeder
-                Artisan::call('migrate', ['--force' => true]);
-                Artisan::call('db:seed', ['--force' => true]);
+            if (!Schema::hasTable('activity_logs') || !Schema::hasTable('settings')) {
+                @ini_set('memory_limit', '512M');
+                @set_time_limit(300);
 
-                // 2. If admins table is still missing, fallback to raw SQL import
-                if (!Schema::hasTable('admins')) {
-                    $sqlFile = database_path('dating_app.sql');
-                    if (file_exists($sqlFile)) {
-                        DB::unprepared(file_get_contents($sqlFile));
-                    }
-                }
+                Artisan::call('migrate', ['--force' => true]);
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\Seeders\AdminSeeder',
+                    '--force' => true,
+                ]);
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\Seeders\SettingSeeder',
+                    '--force' => true,
+                ]);
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\Seeders\SubscriptionPlanSeeder',
+                    '--force' => true,
+                ]);
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\Seeders\StarPackageSeeder',
+                    '--force' => true,
+                ]);
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\Seeders\InterestSeeder',
+                    '--force' => true,
+                ]);
             }
         } catch (\Throwable $e) {
-            // Fallback to raw SQL import
-            try {
-                $sqlFile = database_path('dating_app.sql');
-                if (file_exists($sqlFile)) {
-                    DB::unprepared(file_get_contents($sqlFile));
-                }
-            } catch (\Throwable $ex) {
-                // Log and continue
-            }
+            // Ignore and continue
         }
     }
 

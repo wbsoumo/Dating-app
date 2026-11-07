@@ -33,23 +33,39 @@ Route::get('/migrate-db', function () {
         abort(403, 'Unauthorized. Please provide valid deployment key.');
     }
 
+    @ini_set('memory_limit', '512M');
+    @set_time_limit(300);
+
     $results = [];
 
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        $results['migrate'] = \Illuminate\Support\Facades\Artisan::output();
+        $results['migrate'] = trim(\Illuminate\Support\Facades\Artisan::output());
 
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        $results['seed'] = \Illuminate\Support\Facades\Artisan::output();
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Database\Seeders\AdminSeeder',
+            '--force' => true,
+        ]);
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Database\Seeders\SettingSeeder',
+            '--force' => true,
+        ]);
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Database\Seeders\SubscriptionPlanSeeder',
+            '--force' => true,
+        ]);
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Database\Seeders\StarPackageSeeder',
+            '--force' => true,
+        ]);
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Database\Seeders\InterestSeeder',
+            '--force' => true,
+        ]);
+
+        $results['seed'] = 'All master seeders completed successfully!';
     } catch (\Throwable $e) {
-        $results['artisan_error'] = $e->getMessage();
-
-        // Fallback: Direct PDO import of dating_app.sql
-        $sqlPath = database_path('dating_app.sql');
-        if (file_exists($sqlPath)) {
-            \Illuminate\Support\Facades\DB::unprepared(file_get_contents($sqlPath));
-            $results['sql_import'] = 'Imported database/dating_app.sql successfully via PDO.';
-        }
+        $results['error'] = $e->getMessage();
     }
 
     return response()->json([
