@@ -337,25 +337,36 @@
         });
 
         // Gender Distribution Chart
-        const ctxGender = document.getElementById('genderChart').getContext('2d');
-        new Chart(ctxGender, {
-            type: 'doughnut',
-            data: {
-                labels: ['Male', 'Female', 'Other'],
-                datasets: [{
-                    data: [{{ $maleUsers }}, {{ $femaleUsers }}, {{ $otherUsers }}],
-                    backgroundColor: ['#3b82f6', '#ec4899', '#94a3b8'],
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        const genderCanvas = document.getElementById('genderChart');
+        if (genderCanvas) {
+            const ctxGender = genderCanvas.getContext('2d');
+            const maleUsers = {{ (int) $maleUsers }};
+            const femaleUsers = {{ (int) $femaleUsers }};
+            const otherUsers = {{ (int) $otherUsers }};
+            const totalUsers = maleUsers + femaleUsers + otherUsers;
+
+            new Chart(ctxGender, {
+                type: 'doughnut',
+                data: {
+                    labels: totalUsers > 0 ? ['Male', 'Female', 'Other'] : ['No Users Yet'],
+                    datasets: [{
+                        data: totalUsers > 0 ? [maleUsers, femaleUsers, otherUsers] : [1],
+                        backgroundColor: totalUsers > 0 ? ['#3b82f6', '#ec4899', '#94a3b8'] : ['#cbd5e1'],
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 500
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
                 }
-            }
-        });
+            });
+        }
     });
 </script>
 @endpush
