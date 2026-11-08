@@ -193,14 +193,8 @@ if ($pdo) {
                 $importLog[] = "[Error] SQL import interrupted: " . $e->getMessage();
             }
         }
-    } else {
-        // Auto-check if subscription_plans or user_subscriptions is missing, auto-create immediately!
-        try {
-            $checkSubs = $pdo->query("SHOW TABLES LIKE 'user_subscriptions'")->fetch();
-            if (!$checkSubs) {
-                applyCoreTableFixes($pdo, $importLog);
-            }
-        } catch (Throwable $t) {}
+        // Always ensure core tables exist
+        applyCoreTableFixes($pdo, $importLog);
     }
 }
 

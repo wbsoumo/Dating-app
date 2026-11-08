@@ -105,7 +105,7 @@ CREATE TABLE `subscription_plans` (
   `price` DECIMAL(10, 2) NOT NULL ,
   `currency` VARCHAR(255) NOT NULL DEFAULT 'INR',
   `duration_days` BIGINT UNSIGNED NOT NULL DEFAULT '30',
-  `daily_swipe_limit` BIGINT UNSIGNED NOT NULL DEFAULT -1,
+  `daily_swipe_limit` INT NOT NULL DEFAULT -1,
   `daily_star_allowance` BIGINT UNSIGNED NOT NULL DEFAULT '5',
   `can_see_likes` BIGINT UNSIGNED NOT NULL DEFAULT '1',
   `can_rewind` BIGINT UNSIGNED NOT NULL DEFAULT '1',
