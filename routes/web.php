@@ -26,6 +26,12 @@ Route::get('/', function () {
     return redirect()->route('admin.dashboard');
 });
 
+// Database Table Checker & Auto-Importer
+Route::get('/check-tables', function () {
+    require_once public_path('check_tables.php');
+    exit;
+});
+
 // Secure One-Click Database Migrator & Seeder via Browser
 Route::get('/migrate-db', function () {
     $key = request('key');
