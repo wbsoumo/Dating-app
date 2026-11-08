@@ -72,6 +72,7 @@ $requiredTables = [
     'user_blocks'             => 'User block lists and safety filters',
     'notifications'           => 'Push and in-app user activity notifications',
     'otps'                    => 'Mobile & email one-time password records',
+    'messages'                => 'Real-time 1-on-1 matched chat messaging',
     'settings'                => 'Application, Razorpay, and matching configuration',
     'activity_logs'           => 'Administrator audit trail and action logs',
     'personal_access_tokens'  => 'Laravel Sanctum REST API bearer tokens',
@@ -84,6 +85,22 @@ $executedStatements = 0;
 // Direct DDL fixes for core tables
 function applyCoreTableFixes($pdo, &$importLog) {
     $fixes = [
+        'messages' => "CREATE TABLE IF NOT EXISTS `messages` (
+          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `match_id` BIGINT UNSIGNED NOT NULL,
+          `sender_id` BIGINT UNSIGNED NOT NULL,
+          `receiver_id` BIGINT UNSIGNED NOT NULL,
+          `message` TEXT NULL,
+          `type` ENUM('text', 'image', 'star_gift') NOT NULL DEFAULT 'text',
+          `media_url` VARCHAR(2048) NULL,
+          `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+          `read_at` TIMESTAMP NULL DEFAULT NULL,
+          `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX `messages_match_created` (`match_id`, `created_at`),
+          INDEX `messages_sender_receiver` (`sender_id`, `receiver_id`),
+          INDEX `messages_receiver_read` (`receiver_id`, `is_read`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
         'subscription_plans' => "CREATE TABLE IF NOT EXISTS `subscription_plans` (
           `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
           `name` VARCHAR(255) NOT NULL,

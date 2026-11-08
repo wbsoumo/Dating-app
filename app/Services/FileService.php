@@ -84,4 +84,29 @@ class FileService
 
         return true;
     }
+
+    /**
+     * Store uploaded chat image media in public/uploads/chat/{userId} directory.
+     */
+    public function uploadChatMedia(User $user, UploadedFile $file): string
+    {
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'];
+        if (!in_array($file->getMimeType(), $allowedMimes)) {
+            throw new Exception('Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.');
+        }
+
+        if ($file->getSize() > 10 * 1024 * 1024) {
+            throw new Exception('File size exceeds the 10MB limit.');
+        }
+
+        $uploadDir = public_path('uploads/chat/' . $user->id);
+        if (!File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true, true);
+        }
+
+        $filename = 'chat_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+        $file->move($uploadDir, $filename);
+
+        return url('uploads/chat/' . $user->id . '/' . $filename);
+    }
 }

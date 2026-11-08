@@ -78,7 +78,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [MatchController::class, 'listMatches']);
             Route::get('/{id}', [MatchController::class, 'getMatch']);
             Route::post('/{id}/unmatch', [MatchController::class, 'unmatch']);
+            Route::get('/{id}/messages', [\App\Http\Controllers\Api\V1\MessageController::class, 'getMessages']);
+            Route::post('/{id}/messages', [\App\Http\Controllers\Api\V1\MessageController::class, 'sendMessage']);
+            Route::post('/{id}/messages/read', [\App\Http\Controllers\Api\V1\MessageController::class, 'markAsRead']);
         });
+
+        // Messages direct action
+        Route::delete('/messages/{id}', [\App\Http\Controllers\Api\V1\MessageController::class, 'deleteMessage']);
 
         // Swipes & Limits
         Route::prefix('swipes')->group(function () {

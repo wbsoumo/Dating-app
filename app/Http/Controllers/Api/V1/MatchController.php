@@ -34,10 +34,25 @@ class MatchController extends BaseApiController
             $partner = $match->getPartner($user->id);
             $avatar = $partner?->photos->where('is_primary', true)->first()?->url ?? $partner?->photos->first()?->url;
 
+            $latestMsg = \App\Models\Message::where('match_id', $match->id)->latest()->first();
+            $unreadCount = \App\Models\Message::where('match_id', $match->id)
+                ->where('receiver_id', $user->id)
+                ->where('is_read', false)
+                ->count();
+
             return [
                 'match_id' => $match->id,
                 'matched_at' => $match->matched_at->toIso8601String(),
                 'last_message_at' => $match->last_message_at?->toIso8601String(),
+                'unread_count' => $unreadCount,
+                'last_message' => $latestMsg ? [
+                    'id' => $latestMsg->id,
+                    'message' => $latestMsg->message,
+                    'type' => $latestMsg->type,
+                    'media_url' => $latestMsg->media_url,
+                    'is_me' => ($latestMsg->sender_id === $user->id),
+                    'created_at' => $latestMsg->created_at->toIso8601String(),
+                ] : null,
                 'partner' => [
                     'id' => $partner?->id,
                     'name' => $partner?->name,
