@@ -148,12 +148,14 @@
                 </h3>
             </div>
             <div class="card-body">
-                <canvas id="genderChart" height="220"></canvas>
+                <div style="position: relative; height: 220px; max-height: 220px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                    <canvas id="genderChart" style="max-height: 220px; max-width: 100%;"></canvas>
+                </div>
                 <div class="mt-3 text-center text-sm">
-                    <span class="badge badge-primary mr-2"><i class="fas fa-circle mr-1"></i> Male: {{ $maleUsers }}</span>
-                    <span class="badge badge-pink mr-2" style="background:#ec4899; color:#fff;"><i class="fas fa-circle mr-1"></i> Female: {{ $femaleUsers }}</span>
+                    <span class="badge badge-primary mr-2"><i class="fas fa-circle mr-1"></i> Male: {{ number_format($maleUsers) }}</span>
+                    <span class="badge badge-pink mr-2" style="background:#ec4899; color:#fff;"><i class="fas fa-circle mr-1"></i> Female: {{ number_format($femaleUsers) }}</span>
                     @if($otherUsers > 0)
-                        <span class="badge badge-secondary"><i class="fas fa-circle mr-1"></i> Other: {{ $otherUsers }}</span>
+                        <span class="badge badge-secondary"><i class="fas fa-circle mr-1"></i> Other: {{ number_format($otherUsers) }}</span>
                     @endif
                 </div>
             </div>
@@ -357,9 +359,10 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
+                    cutout: '65%',
                     animation: {
-                        duration: 500
+                        duration: 400
                     },
                     plugins: {
                         legend: { display: false }
