@@ -81,45 +81,126 @@ $importLog = [];
 $importedCount = 0;
 $executedStatements = 0;
 
-// 4. Handle Import Action
-if ($pdo && (isset($_GET['import']) || isset($_POST['import']))) {
-    $sqlFile = $rootDir . '/database/dating_app.sql';
-    if (!file_exists($sqlFile)) {
-        $importLog[] = "[Error] database/dating_app.sql not found at: {$sqlFile}";
-    } else {
+// Direct DDL fixes for core tables
+function applyCoreTableFixes($pdo, &$importLog) {
+    $fixes = [
+        'subscription_plans' => "CREATE TABLE IF NOT EXISTS `subscription_plans` (
+          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(255) NOT NULL,
+          `slug` VARCHAR(255) NOT NULL UNIQUE,
+          `description` TEXT NULL,
+          `price` DECIMAL(10, 2) NOT NULL,
+          `currency` VARCHAR(10) NOT NULL DEFAULT 'INR',
+          `duration_days` INT UNSIGNED NOT NULL DEFAULT 30,
+          `daily_swipe_limit` INT NOT NULL DEFAULT -1,
+          `daily_star_allowance` INT UNSIGNED NOT NULL DEFAULT 5,
+          `can_see_likes` TINYINT(1) NOT NULL DEFAULT 1,
+          `can_rewind` TINYINT(1) NOT NULL DEFAULT 1,
+          `can_boost` TINYINT(1) NOT NULL DEFAULT 1,
+          `badge_color` VARCHAR(50) NOT NULL DEFAULT '#e11d48',
+          `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+          `sort_order` INT NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+        'subscription_plans_seed' => "INSERT INTO `subscription_plans` (`id`, `name`, `slug`, `description`, `price`, `currency`, `duration_days`, `daily_swipe_limit`, `daily_star_allowance`, `can_see_likes`, `can_rewind`, `can_boost`, `badge_color`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
+        (1, 'Weekly Boost', 'weekly-boost', 'Fast-track your connections with 7 days of unlimited swipes and 5 free daily stars.', 199.00, 'INR', 7, -1, 5, 1, 1, 1, '#3b82f6', 1, 1, NOW(), NOW()),
+        (2, 'Monthly Gold', 'monthly-gold', 'Our most popular plan. Unlimited swipes, see who likes you, and 10 free daily stars.', 599.00, 'INR', 30, -1, 10, 1, 1, 1, '#eab308', 1, 2, NOW(), NOW()),
+        (3, 'Quarterly Platinum', 'quarterly-platinum', '3 months of premium dating power. Highest priority in discovery and 15 daily stars.', 1499.00, 'INR', 90, -1, 15, 1, 1, 1, '#8b5cf6', 1, 3, NOW(), NOW()),
+        (4, 'VIP Annual', 'vip-annual', 'Complete VIP experience with unlimited rewinds, priority matching, and 25 daily stars.', 3999.00, 'INR', 365, -1, 25, 1, 1, 1, '#10b981', 1, 4, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);",
+
+        'user_subscriptions' => "CREATE TABLE IF NOT EXISTS `user_subscriptions` (
+          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `user_id` BIGINT UNSIGNED NOT NULL,
+          `plan_id` BIGINT UNSIGNED NOT NULL,
+          `payment_id` BIGINT UNSIGNED NULL,
+          `starts_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `expires_at` TIMESTAMP NOT NULL,
+          `status` ENUM('active', 'expired', 'cancelled') NOT NULL DEFAULT 'active',
+          `auto_renew` TINYINT(1) NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX `user_subs_user_status` (`user_id`, `status`),
+          INDEX `user_subs_expires` (`expires_at`),
+          INDEX `user_subs_status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+        'otps' => "CREATE TABLE IF NOT EXISTS `otps` (
+          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `identifier` VARCHAR(255) NOT NULL,
+          `code` VARCHAR(255) NOT NULL,
+          `expires_at` TIMESTAMP NOT NULL,
+          `is_verified` TINYINT(1) NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX `otps_identifier` (`identifier`),
+          INDEX `otps_code` (`code`),
+          INDEX `otps_expires` (`expires_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    ];
+
+    foreach ($fixes as $name => $sql) {
         try {
-            $pdo->exec("SET FOREIGN_KEY_CHECKS=0;");
-            $pdo->exec("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';");
-            $pdo->exec("SET NAMES utf8mb4;");
-
-            $handle = fopen($sqlFile, 'r');
-            $currentStmt = '';
-
-            while (($line = fgets($handle)) !== false) {
-                $trimmed = trim($line);
-                if (empty($trimmed) || strncmp($trimmed, '--', 2) === 0 || strncmp($trimmed, '/*', 2) === 0) {
-                    continue;
-                }
-
-                $currentStmt .= $line;
-
-                if (substr($trimmed, -1) === ';') {
-                    try {
-                        $pdo->exec($currentStmt);
-                        $executedStatements++;
-                    } catch (PDOException $ex) {
-                        // Ignore harmless duplicate insert warnings or log
-                    }
-                    $currentStmt = '';
-                }
-            }
-            fclose($handle);
-
-            $pdo->exec("SET FOREIGN_KEY_CHECKS=1;");
-            $importLog[] = "[Success] Executed {$executedStatements} SQL statements successfully!";
+            $pdo->exec($sql);
+            $importLog[] = "[Success] Created / verified table {$name}";
         } catch (Throwable $e) {
-            $importLog[] = "[Error] SQL import interrupted: " . $e->getMessage();
+            $importLog[] = "[Error] Failed {$name}: " . $e->getMessage();
         }
+    }
+}
+
+// 4. Handle Import Action
+if ($pdo) {
+    if (isset($_GET['import']) || isset($_POST['import'])) {
+        // First apply direct core table creation
+        applyCoreTableFixes($pdo, $importLog);
+
+        $sqlFile = $rootDir . '/database/dating_app.sql';
+        if (file_exists($sqlFile)) {
+            try {
+                $pdo->exec("SET FOREIGN_KEY_CHECKS=0;");
+                $pdo->exec("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';");
+                $pdo->exec("SET NAMES utf8mb4;");
+
+                $handle = fopen($sqlFile, 'r');
+                $currentStmt = '';
+
+                while (($line = fgets($handle)) !== false) {
+                    $trimmed = trim($line);
+                    if (empty($trimmed) || strncmp($trimmed, '--', 2) === 0 || strncmp($trimmed, '/*', 2) === 0) {
+                        continue;
+                    }
+
+                    $currentStmt .= $line;
+
+                    if (substr($trimmed, -1) === ';') {
+                        try {
+                            $pdo->exec($currentStmt);
+                            $executedStatements++;
+                        } catch (PDOException $ex) {
+                            // Ignored or harmless
+                        }
+                        $currentStmt = '';
+                    }
+                }
+                fclose($handle);
+
+                $pdo->exec("SET FOREIGN_KEY_CHECKS=1;");
+                $importLog[] = "[Success] Executed {$executedStatements} statements from database/dating_app.sql";
+            } catch (Throwable $e) {
+                $importLog[] = "[Error] SQL import interrupted: " . $e->getMessage();
+            }
+        }
+    } else {
+        // Auto-check if subscription_plans or user_subscriptions is missing, auto-create immediately!
+        try {
+            $checkSubs = $pdo->query("SHOW TABLES LIKE 'user_subscriptions'")->fetch();
+            if (!$checkSubs) {
+                applyCoreTableFixes($pdo, $importLog);
+            }
+        } catch (Throwable $t) {}
     }
 }
 
