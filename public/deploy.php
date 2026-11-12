@@ -98,6 +98,9 @@ if (empty($targetBranch) || !preg_match('/^[a-zA-Z0-9_\-\.]+$/', $targetBranch))
 runCmd("git fetch origin {$targetBranch} 2>&1", $output);
 runCmd("git reset --hard origin/{$targetBranch} 2>&1", $output);
 
+// Check available PHP versions
+runCmd('which php; ls -d /opt/cpanel/ea-php* /usr/local/bin/ea-php* /opt/alt/php* 2>&1', $output);
+
 // 2. Run migrations
 runCmd('php artisan migrate --force 2>&1', $output);
 
