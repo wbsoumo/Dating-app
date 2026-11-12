@@ -98,17 +98,25 @@ if (empty($targetBranch) || !preg_match('/^[a-zA-Z0-9_\-\.]+$/', $targetBranch))
 runCmd("git fetch origin {$targetBranch} 2>&1", $output);
 runCmd("git reset --hard origin/{$targetBranch} 2>&1", $output);
 
-// Check available PHP versions
-runCmd('which php; ls -d /opt/cpanel/ea-php* /usr/local/bin/ea-php* /opt/alt/php* 2>&1', $output);
+// Auto-detect best PHP 8.4 binary
+$phpBin = 'php';
+if (file_exists('/usr/local/bin/ea-php84')) {
+    $phpBin = '/usr/local/bin/ea-php84';
+} elseif (file_exists('/opt/cpanel/ea-php84/root/usr/bin/php')) {
+    $phpBin = '/opt/cpanel/ea-php84/root/usr/bin/php';
+} elseif (file_exists('/opt/alt/php84/usr/bin/php')) {
+    $phpBin = '/opt/alt/php84/usr/bin/php';
+}
+runCmd("{$phpBin} -v 2>&1", $output);
 
 // 2. Run migrations
-runCmd('php artisan migrate --force 2>&1', $output);
+runCmd("{$phpBin} artisan migrate --force 2>&1", $output);
 
 // 3. Clear and optimize caches
-runCmd('php artisan optimize:clear 2>&1', $output);
-runCmd('php artisan config:cache 2>&1', $output);
-runCmd('php artisan route:cache 2>&1', $output);
-runCmd('php artisan view:cache 2>&1', $output);
+runCmd("{$phpBin} artisan optimize:clear 2>&1", $output);
+runCmd("{$phpBin} artisan config:cache 2>&1", $output);
+runCmd("{$phpBin} artisan route:cache 2>&1", $output);
+runCmd("{$phpBin} artisan view:cache 2>&1", $output);
 
 // 4. Permissions check
 runCmd('chmod -R 775 storage bootstrap/cache public/uploads 2>&1', $output);
